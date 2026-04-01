@@ -104,7 +104,7 @@ async def write_chapter_from_summary(
     prepared_path = prepared["path"]
     if not prepared_path.parent.exists():
         prepared_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     prepared_path.write_text(content, encoding="utf-8")
     return {"ok": True, "content": content, "chapter_file": str(prepared_path.name)}
 

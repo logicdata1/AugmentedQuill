@@ -367,7 +367,9 @@ def prepare_write_chapter_generation(payload: dict, chap_id: int) -> dict:
     chapters_data = get_normalized_chapters(story)
     # Check if chapter slot exists and has valid index first
     if not isinstance(pos, int) or pos < 0 or pos >= len(chapters_data):
-        raise BadRequestError(f"Chapter {chap_id} not found (pos={pos}, total chapters={len(chapters_data)})")
+        raise BadRequestError(
+            f"Chapter {chap_id} not found (pos={pos}, total chapters={len(chapters_data)})"
+        )
 
     summary = chapters_data[pos].get("summary", "").strip()
     title = chapters_data[pos].get("title") or path.name

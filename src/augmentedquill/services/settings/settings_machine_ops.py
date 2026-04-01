@@ -187,12 +187,12 @@ async def remote_model_exists(
 ) -> tuple[bool, str | None]:
     """Determine if *model_id* exists at *base_url*.
 
-    Zero-Trust modifications:
-    - Removed in-flight task coalescing (_model_exists_inflight)
-    - Cache still applies (TTL=60s) but no shared background tasks between callers
-    
-    Consumers of this module simply call this function; the implementation manages
-caching, validation and concurrency internally."""
+        Zero-Trust modifications:
+        - Removed in-flight task coalescing (_model_exists_inflight)
+        - Cache still applies (TTL=60s) but no shared background tasks between callers
+
+        Consumers of this module simply call this function; the implementation manages
+    caching, validation and concurrency internally."""
     key = _exists_cache_key(base_url, api_key, model_id)
     now = time.monotonic()
 

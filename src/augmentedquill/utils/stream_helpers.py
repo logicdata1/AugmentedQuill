@@ -39,7 +39,8 @@ class ChannelFilter:
     def feed(self, chunk: str) -> List[Dict[str, str]]:
         """Process a chunk and return a list of (channel, content) pairs.
 
-        Zero-Trust modification: Added explicit iteration limit to prevent infinite loops."""
+        Zero-Trust modification: Added explicit iteration limit to prevent infinite loops.
+        """
         self.buffer += chunk
         results = []
         # Zero-Trust: Bounded loop prevents pathological buffering on malformed input
@@ -134,7 +135,7 @@ class ChannelFilter:
 
                 # Advance buffer past the tag
                 self.buffer = self.buffer[end:]
-            
+
             iterations += 1
             if iterations > max_iterations:
                 break

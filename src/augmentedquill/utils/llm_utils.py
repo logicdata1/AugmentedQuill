@@ -8,7 +8,8 @@
 """Defines the llm utils unit so this responsibility stays isolated, testable,
 and easy to evolve.
 
-Common LLM-related utility functions, including capability verification and URL normalization."""
+Common LLM-related utility functions, including capability verification and URL normalization.
+"""
 
 import asyncio
 

@@ -17,7 +17,6 @@ import os
 import json
 from typing import Any, Dict
 
-
 """
 Defines the llm logging unit so this responsibility stays isolated, testable,
 and easy to evolve.
@@ -26,6 +25,7 @@ Zero-Trust changes:
 - Removed global in-memory log list (previously kept up to 100 entries)
 - Logging now writes immediately to disk when AUGQ_LLM_DUMP=1 is set
 - No persistent state between function calls"""
+
 
 def get_caller_origin(caller_id: str | None) -> str:
     """Derive a human-friendly source label from caller_id for diagnostics."""
