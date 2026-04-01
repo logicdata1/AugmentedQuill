@@ -101,4 +101,7 @@ async def inject_project_images(messages: list[dict]):
         except Exception:
             pass
 
-    last_msg["content"] = new_content
+    # Only update if at least one image was successfully added.
+    # If all images failed (e.g., model doesn't support vision), keep text-only content.
+    if len(new_content) > 1 or not found_images:
+        last_msg["content"] = new_content
