@@ -11,7 +11,6 @@ and easy to evolve.
 Common LLM-related utility functions, including capability verification and URL normalization."""
 
 import asyncio
-import time
 
 import httpx
 
