@@ -26,10 +26,9 @@ try {
 
 let gitRevision = 'unknown';
 try {
-  const result = child_process.execSync(
-    'git rev-parse --short HEAD', 
-    { encoding: 'utf-8' }
-  );
+  const result = child_process.execSync('git rev-parse --short HEAD', {
+    encoding: 'utf-8',
+  });
   if (result && typeof result.trim === 'function') {
     gitRevision = result.trim();
   } else {
@@ -38,9 +37,7 @@ try {
 } catch (e) {
   // Gracefully handle missing .git folder or non-git directories
   if (String(e).includes('fatal: not a git repository')) {
-    console.log(
-      '⚠️ Not in a Git repo - using default revision "unknown"'
-    );
+    console.log('⚠️ Not in a Git repo - using default revision "unknown"');
   } else {
     console.warn('Unable to resolve git revision at build time', e);
   }

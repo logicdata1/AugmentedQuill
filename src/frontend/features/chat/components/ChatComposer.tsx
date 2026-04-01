@@ -43,7 +43,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     el.style.height = 'auto';
 
     // Keep the input box responsive and bounded for right-pane layout.
-    const maxHeight = 400;  // Increased from 280px to allow more typing space
+    const maxHeight = 400; // Increased from 280px to allow more typing space
     const nextHeight = Math.min(el.scrollHeight, maxHeight);
     el.style.height = `${nextHeight}px`;
 
