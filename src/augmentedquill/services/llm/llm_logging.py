@@ -17,7 +17,6 @@ import os
 import json
 from typing import Any, Dict
 
-
 # Global in-memory log list for tests (kept up to 100 entries)
 llm_logs: list[Dict[str, Any]] = []
 
