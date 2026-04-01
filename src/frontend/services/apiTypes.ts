@@ -1,0 +1,257 @@
+// Copyright (C) 2026 StableLlama
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+/**
+ * Defines the api types unit so this responsibility stays isolated, testable, and easy to evolve.
+ */
+
+import { Book, Chapter, Conflict, SourcebookEntry, SourcebookRelation } from '../types';
+
+export interface MachineModelConfig {
+  name: string;
+  base_url: string;
+  api_key?: string;
+  model: string;
+  timeout_s?: number;
+  context_window_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+  max_tokens?: number;
+  presence_penalty?: number;
+  frequency_penalty?: number;
+  stop?: string[];
+  seed?: number;
+  top_k?: number;
+  min_p?: number;
+  extra_body?: string;
+  preset_id?: string;
+  writing_warning?: string;
+  is_multimodal?: boolean;
+  supports_function_calling?: boolean;
+  prompt_overrides?: Record<string, string>;
+}
+
+export interface MachineOpenAIConfig {
+  models?: MachineModelConfig[];
+  selected?: string;
+  selected_chat?: string;
+  selected_writing?: string;
+  selected_editing?: string;
+}
+
+export interface ModelPresetWarning {
+  writing?: string;
+}
+
+export interface ModelPresetEntry {
+  id: string;
+  name: string;
+  description: string;
+  model_id_patterns: string[];
+  parameters: Partial<MachineModelConfig>;
+  warnings?: ModelPresetWarning;
+}
+
+export interface MachinePresetsResponse {
+  presets: ModelPresetEntry[];
+}
+
+export interface MachineConfigResponse {
+  openai?: MachineOpenAIConfig;
+}
+
+export interface ProjectListItem {
+  name: string;
+  title?: string;
+  type?: 'short-story' | 'novel' | 'series';
+  path?: string;
+  is_valid?: boolean;
+  language?: string;
+}
+
+export interface StoryApiPayload {
+  project_title?: string;
+  story_summary?: string;
+  language?: string;
+  notes?: string;
+  private_notes?: string;
+  tags?: string[];
+  image_style?: string;
+  image_additional_info?: string;
+  project_type?: 'short-story' | 'novel' | 'series';
+  books?: Book[];
+  sourcebook?: SourcebookEntry[];
+  conflicts?: Conflict[];
+  llm_prefs?: {
+    prompt_overrides?: Record<string, string>;
+    temperature?: number;
+    max_tokens?: number;
+  };
+  chapters?: Array<{
+    title?: string;
+    summary?: string;
+    filename?: string;
+    book_id?: string;
+    notes?: string;
+    private_notes?: string;
+    conflicts?: Conflict[];
+  }>;
+}
+
+export interface ProjectsListResponse {
+  current?: string;
+  recent?: string[];
+  available?: ProjectListItem[];
+  projects?: ProjectListItem[];
+}
+
+export interface ProjectSelectResponse {
+  ok?: boolean;
+  message?: string;
+  story?: StoryApiPayload | null;
+  error?: 'invalid_config' | string;
+  error_message?: string;
+}
+
+export interface ProjectMutationResponse {
+  ok: boolean;
+  message?: string;
+  detail?: string;
+  available?: ProjectListItem[];
+  story?: StoryApiPayload;
+}
+
+export interface StoryContentResponse {
+  ok: boolean;
+  content: string;
+}
+
+export interface ChapterListItem {
+  id: number;
+  title: string;
+  summary: string;
+  filename?: string;
+  book_id?: string;
+  notes?: string;
+  private_notes?: string;
+  conflicts?: Conflict[];
+}
+
+export interface ChapterListResponse {
+  chapters: ChapterListItem[];
+}
+
+export interface ChapterDetailResponse {
+  id: number;
+  title: string;
+  filename: string;
+  content: string;
+  summary: string;
+  notes?: string;
+  private_notes?: string;
+  conflicts?: Conflict[];
+}
+
+export interface ChatToolFunctionCall {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
+export interface ChatApiMessage {
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string | null;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+  tool_call_id?: string;
+  name?: string;
+}
+
+export interface ChatToolExecutionResponse {
+  ok: boolean;
+  appended_messages: Array<{
+    role: 'tool';
+    tool_call_id: string;
+    name: string;
+    content: string;
+  }>;
+  mutations?: {
+    story_changed?: boolean;
+    tool_batch?: {
+      batch_id: string;
+      tool_names: string[];
+      operation_count: number;
+      label: string;
+    };
+  };
+}
+
+export interface ChatToolBatchMutationResponse {
+  ok: boolean;
+  batch_id: string;
+}
+
+export interface ProjectImage {
+  filename: string;
+  title?: string;
+  description?: string;
+  url?: string;
+  is_placeholder?: boolean;
+}
+
+export interface ListImagesResponse {
+  images: ProjectImage[];
+}
+
+export interface SourcebookUpsertPayload {
+  id?: string;
+  name: string;
+  synonyms: string[];
+  category?: string;
+  description: string;
+  images: string[];
+  keywords?: string[];
+  relations?: SourcebookRelation[];
+}
+
+export interface DebugLogEntry {
+  id: string;
+  caller_id?: string;
+  model_type?: string;
+  timestamp_start: string;
+  timestamp_end: string | null;
+  request: {
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body: unknown;
+  };
+  response: {
+    status_code: number | null;
+    body?: unknown;
+    streaming?: boolean;
+    chunks?: unknown[];
+    full_content?: string;
+    error?: unknown;
+    tool_calls?: unknown[];
+  } | null;
+}
+
+export const mapChapterListItemToChapter = (item: ChapterListItem): Chapter => ({
+  id: String(item.id),
+  title: item.title,
+  summary: item.summary,
+  content: '',
+  filename: item.filename,
+  book_id: item.book_id,
+  notes: item.notes,
+  private_notes: item.private_notes,
+  conflicts: item.conflicts,
+});
