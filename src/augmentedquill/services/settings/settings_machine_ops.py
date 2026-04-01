@@ -121,10 +121,7 @@ def _exists_cache_key(
 async def _remote_model_exists_probe(
     *, base_url: str, api_key: str | None, model_id: str, timeout_s: int
 ) -> tuple[bool, str | None]:
-    """Probe the provider to determine if a given model is present.
-
-    Zero-Trust modification: No longer shares in-flight tasks between callers,
-    each call executes independently without global state pooling."""
+    """Probe the provider to determine if a given model is present."""
     base = str(base_url or "").strip().rstrip("/")
     try:
         # skip validation for settings connections; the caller controls the URL
@@ -188,12 +185,8 @@ async def remote_model_exists(
 ) -> tuple[bool, str | None]:
     """Determine if *model_id* exists at *base_url*.
 
-        Zero-Trust modifications:
-        - Removed in-flight task coalescing (_model_exists_inflight)
-        - Cache still applies (TTL=60s) but no shared background tasks between callers
-
-        Consumers of this module simply call this function; the implementation manages
-    caching, validation and concurrency internally."""
+    Uses TTL-based caching with in-flight task coalescing to avoid duplicate probes.
+    """
     key = _exists_cache_key(base_url, api_key, model_id)
     now = time.monotonic()
 
@@ -201,20 +194,30 @@ async def remote_model_exists(
         entry = _model_exists_cache.get(key)
         if entry and entry[0] > now:
             return entry[1], None
-        # No longer check for inflight tasks - each call executes independently
+
+        # Check for in-flight task (coalescing)
+        inflight_task = _model_exists_inflight.get(key)
+        if inflight_task is None:
+            inflight_task = asyncio.create_task(
+                _remote_model_exists_probe(
+                    base_url=base_url,
+                    api_key=api_key,
+                    model_id=model_id,
+                    timeout_s=timeout_s,
+                )
+            )
+            _model_exists_inflight[key] = inflight_task
 
     try:
-        exists, detail = await _remote_model_exists_probe(
-            base_url=base_url,
-            api_key=api_key,
-            model_id=model_id,
-            timeout_s=timeout_s,
-        )
+        exists, detail = await inflight_task
+        # Cache the result if TTL > 0
         if exists and _MODEL_EXISTS_CACHE_TTL_S > 0:
             expires = time.monotonic() + _MODEL_EXISTS_CACHE_TTL_S
             async with _EXISTS_LOCK:
                 _model_exists_cache[key] = (expires, exists)
         return exists, detail
     finally:
-        # No longer need to clean up inflight tasks since we removed the pool
-        pass
+        async with _EXISTS_LOCK:
+            current_task = _model_exists_inflight.get(key)
+            if current_task is inflight_task:
+                _model_exists_inflight.pop(key, None)

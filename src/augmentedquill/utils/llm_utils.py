@@ -12,6 +12,8 @@ Common LLM-related utility functions, including capability verification and URL 
 """
 
 import asyncio
+import copy
+import time
 
 import httpx
 
@@ -20,9 +22,8 @@ from augmentedquill.services.llm.llm_http_ops import logged_request
 # 1x1 transparent pixel
 PIXEL_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
-# Zero-Trust modification: Removed caching to ensure fresh probes on each call
-# _CAPABILITY_CACHE_TTL_S = 3600 (removed)
-# _capability_cache: dict[tuple[str, str, str], tuple[float, dict]] = {} (removed)
+CAPABILITY_CACHE_TTL_S = 3600
+_capability_cache: dict[tuple[str, str, str], tuple[float, dict]] = {}
 _capability_inflight: dict[tuple[str, str, str], asyncio.Task] = {}
 _capability_lock = asyncio.Lock()
 
@@ -141,21 +142,25 @@ async def verify_model_capabilities(
     api_key: str | None,
     model_id: str,
     timeout_s: int = 10,
-    cache_ttl_s: int = 3600,
+    cache_ttl_s: int = CAPABILITY_CACHE_TTL_S,
 ) -> dict:
     """
     Dynamically tests the model for Vision and Function Calling capabilities by sending minimal requests.
 
-    Zero-Trust modification: Removed caching - each call executes a fresh network probe.
-    This ensures transparency but may be slower than cached version (up to 3600x).
+    Uses TTL-based caching with in-flight task coalescing to avoid duplicate probes.
 
     Args:
-        cache_ttl_s: Cache time-to-live in seconds (kept for test compatibility, currently unused)
+        cache_ttl_s: Cache time-to-live in seconds (default 3600)
     """
     key = _cache_key(base_url=base_url, api_key=api_key, model_id=model_id)
 
     async with _capability_lock:
-        # Zero-Trust: No cache check - always probe fresh
+        # Check TTL-based cache first
+        entry = _capability_cache.get(key)
+        if entry and entry[0] > time.monotonic():
+            return copy.deepcopy(entry[1])
+
+        # Check for in-flight task (coalescing)
         inflight_task = _capability_inflight.get(key)
         if inflight_task is None:
             inflight_task = asyncio.create_task(
@@ -170,10 +175,14 @@ async def verify_model_capabilities(
 
     try:
         capabilities = await inflight_task
+        # Cache the result if TTL > 0
+        if cache_ttl_s > 0:
+            async with _capability_lock:
+                expires = time.monotonic() + cache_ttl_s
+                _capability_cache[key] = (expires, copy.deepcopy(capabilities))
         return capabilities
     finally:
         async with _capability_lock:
             current_task = _capability_inflight.get(key)
             if current_task is inflight_task:
-                # Zero-Trust: Clean up immediately after completion (no lingering state)
                 _capability_inflight.pop(key, None)

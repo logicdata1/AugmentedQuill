@@ -164,7 +164,7 @@ def _prepare_dump_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
 def add_llm_log(log_entry: Dict[str, Any]):
     """Write a log entry directly to disk when AUGQ_LLM_DUMP is set.
 
-    Zero-Trust: No in-memory retention, immediate write-only behavior."""
+    Also maintains in-memory list for tests (up to 100 entries)."""
     entry_copy = copy.deepcopy(log_entry)
     caller_id = entry_copy.get("caller_id")
     if caller_id and not entry_copy.get("caller_origin"):
@@ -174,6 +174,13 @@ def add_llm_log(log_entry: Dict[str, Any]):
     if os.getenv("AUGQ_LLM_DUMP") == "1":
         default_path = os.path.join("data", "logs", "llm_raw.log")
         log_path = os.getenv("AUGQ_LLM_DUMP_PATH") or default_path
+
+    # Also add to in-memory list for tests (up to 100 entries)
+    if len(llm_logs) >= 100:
+        llm_logs.pop(0)
+    llm_logs.append(entry_copy)
+
+    if os.getenv("AUGQ_LLM_DUMP") == "1":
         # Ensure parent directory exists before writing (zero-trust: no hidden state)
         try:
             if not os.path.exists(os.path.dirname(log_path)):
