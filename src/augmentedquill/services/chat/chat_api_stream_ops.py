@@ -50,7 +50,46 @@ def resolve_stream_model_context(payload: dict, machine: dict) -> dict:
         model_id = chosen.get("model") or model_id
         timeout_s = chosen.get("timeout_s", 60) or timeout_s
 
-    is_multimodal = True
+    def _model_supports_vision(model_id: str | None, model_name: str | None) -> bool:
+        """Check if a model likely supports vision based on name patterns."""
+        id_lower = (model_id or "").lower()
+        name_lower = (model_name or "").lower()
+        
+        # Vision models - these support image input
+        vision_patterns = [
+            "vision", "claude-3", "gpt-4o",
+            "llava", "bakllava", "paligemma",
+            "gemini-pro-vision", "glm-4v"
+        ]
+        
+        # Non-vision models - these don't support image input
+        non_vision_patterns = [
+            "llama2", "llama3" if not any(p in id_lower for p in ["chat", "instruct"]) else None,
+            "mistral", "mixtral",
+            "phi-2", "phi-3-small",
+            "qwen1.5", "qwen2-text"
+        ]
+        
+        # Check if explicitly marked as non-multimodal
+        if chosen and chosen.get("is_multimodal") is False:
+            return False
+        
+        # Check for vision patterns first (more likely to be correct)
+        for pattern in vision_patterns:
+            if pattern in id_lower or pattern in name_lower:
+                return True
+        
+        # Check for non-vision patterns
+        for pattern in non_vision_patterns:
+            if pattern and pattern in id_lower:
+                return False
+            if pattern and pattern in name_lower:
+                return False
+        
+        # Default: assume multimodal unless we have a strong reason not to
+        return True
+    
+    is_multimodal = _model_supports_vision(model_id, selected_name)
     supports_function_calling = True
     if chosen:
         if chosen.get("is_multimodal") is False:
