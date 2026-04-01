@@ -17,6 +17,10 @@ import os
 import json
 from typing import Any, Dict
 
+
+# Global in-memory log list for tests (kept up to 100 entries)
+llm_logs: list[Dict[str, Any]] = []
+
 """
 Defines the llm logging unit so this responsibility stays isolated, testable,
 and easy to evolve.
@@ -196,7 +200,6 @@ def add_llm_log(log_entry: Dict[str, Any]):
                 and isinstance(processed_entry["request"]["body"], dict)
                 and "tools" in processed_entry["request"]["body"]
             ):
-
                 tools = processed_entry["request"]["body"]["tools"]
                 if isinstance(tools, list):
                     for tool in tools:

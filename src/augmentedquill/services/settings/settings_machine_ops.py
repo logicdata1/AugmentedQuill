@@ -101,6 +101,7 @@ async def list_remote_models(
 # - Cache (_MODEL_EXISTS_CACHE_TTL_S) still exists for performance but is cleared on app exit
 _MODEL_EXISTS_CACHE_TTL_S = 60
 _model_exists_cache: dict[tuple[str, str, str], tuple[float, bool]] = {}
+_model_exists_inflight: dict[tuple[str, str, str], asyncio.Task] = {}
 _EXISTS_LOCK = asyncio.Lock()
 
 

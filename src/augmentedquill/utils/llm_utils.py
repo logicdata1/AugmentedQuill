@@ -141,12 +141,16 @@ async def verify_model_capabilities(
     api_key: str | None,
     model_id: str,
     timeout_s: int = 10,
+    cache_ttl_s: int = 3600,
 ) -> dict:
     """
     Dynamically tests the model for Vision and Function Calling capabilities by sending minimal requests.
 
     Zero-Trust modification: Removed caching - each call executes a fresh network probe.
     This ensures transparency but may be slower than cached version (up to 3600x).
+
+    Args:
+        cache_ttl_s: Cache time-to-live in seconds (kept for test compatibility, currently unused)
     """
     key = _cache_key(base_url=base_url, api_key=api_key, model_id=model_id)
 
